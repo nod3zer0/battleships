@@ -14,10 +14,18 @@ import (
 )
 
 type user struct {
-	ID        string `json:"id"`
-	username  string `json:"username"`
-	password  string `json:"password"`
-	sessionID string `json:"session_id"`
+	ID       string `json:"id"`
+	username string `json:"username"`
+	password string `json:"password"`
+	session  string `json:"session"`
+}
+
+type userData struct {
+	Username string `json:"username"`
+}
+
+type userSession struct {
+	Sessionid string `json:"sessionid"`
 }
 
 type userAuth struct {
@@ -68,22 +76,25 @@ func main() {
 	router := gin.Default()
 	router.GET("/albums", getAlbums)
 	router.GET("/addUser", addUser)
-	router.GET("/user/:id", GetUser)
+	router.POST("/user", GetUser)
 	router.POST("/login", Login)
 	router.POST("/signup", SignUp)
 
 	router.Run("localhost:8081")
 }
 
-func Login(c *gin.Context) {
-
-}
-
 func GetUser(c *gin.Context) {
-	session := c.Param("session")
-	var u user
-	err := db.QueryRow("SELECT * FROM user WHERE session = ?", session).Scan(&u.ID, &u.username, &u.password)
-	if err != nil {
+	var session userSession
+	if err := c.BindJSON(&session); err != nil {
+		return
+	}
+	log.Println(session)
+	var u userData
+	err := db.QueryRow("SELECT username FROM user WHERE session = ?", session.Sessionid).Scan(&u.Username)
+	if err == sql.ErrNoRows {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	} else if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -99,6 +110,34 @@ func generateSessionID() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
+}
+
+func Login(c *gin.Context) {
+	var u userAuth
+
+	if err := c.BindJSON(&u); err != nil {
+		return
+	}
+
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT username FROM user WHERE user.username = ? AND user.password = ?)", u.Username, u.Password).Scan(&exists)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !exists {
+		c.IndentedJSON(http.StatusConflict, gin.H{"error": "User does not exist"})
+		return
+	}
+
+	var session_id string
+
+	if err := db.QueryRow("SELECT session FROM user WHERE username = ?", u.Username).Scan(&session_id); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Header("Authorization", session_id)
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "User logged in"})
 }
 
 func SignUp(c *gin.Context) {

@@ -1,5 +1,5 @@
 <main>
-    <h1>Login</h1>
+    <h1>Register</h1>
     <form method="POST">
         <label>
             Username:
