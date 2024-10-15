@@ -1,3 +1,15 @@
+import { redirect } from "@sveltejs/kit";
+
+export const load = async (event) => {
+
+    const sessionid = event.cookies.get('sessionid');
+
+    if (sessionid) {
+        throw redirect(301,'/');
+    }
+};
+
+
 export const actions = {
     default: async (event) => {
         const formData = await event.request.formData();

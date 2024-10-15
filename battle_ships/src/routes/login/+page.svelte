@@ -1,3 +1,11 @@
+<script>
+    import { onMount } from "svelte";
+    import { invalidateAll } from "$app/navigation";
+    onMount(() => {
+        invalidateAll();
+    });
+</script>
+
 <main>
     <h1>Login</h1>
     <form method="POST">
@@ -9,7 +17,7 @@
             Password:
             <input type="password" name="password" />
         </label>
-        <button type="submit">Register</button>
+        <button type="submit">Login</button>
     </form>
 </main>
 

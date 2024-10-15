@@ -130,12 +130,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	var session_id string
-
-	if err := db.QueryRow("SELECT session FROM user WHERE username = ?", u.Username).Scan(&session_id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	session_id := generateSessionID()
+	db.Exec("UPDATE user SET session = ? WHERE user.username = ? AND user.password = ?", session_id, u.Username, u.Password)
 	c.Header("Authorization", session_id)
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "User logged in"})
 }
@@ -150,6 +146,7 @@ func SignUp(c *gin.Context) {
 	var exists bool
 	err := db.QueryRow("SELECT EXISTS(SELECT username FROM user WHERE user.username = ?)", u.Username).Scan(&exists)
 	if err != nil {
+		log.Println(err)
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
