@@ -27,13 +27,16 @@
 
     function enter(event, rowIndex, colIndex) {
         event.preventDefault();
-        gridArray[rowIndex][colIndex] = 1;
 
         if (!pickedShip) {
             return;
         }
         pickedShip.parts.forEach((part) => {
-            gridArray[rowIndex + part[0]][colIndex + part[1]] = 1;
+            if (rotate) {
+                gridArray[rowIndex + part[1]][colIndex + part[0]] = 1;
+            } else {
+                gridArray[rowIndex + part[0]][colIndex + part[1]] = 1;
+            }
         });
     }
 
@@ -44,7 +47,11 @@
 
     function drop(event, rowIndex, colIndex) {
         event.preventDefault();
-        pickedShips.push({ ship: pickedShip, position: [rowIndex, colIndex] });
+        pickedShips.push({
+            ship: pickedShip,
+            position: [rowIndex, colIndex],
+            rotation: rotate,
+        });
         pickedShip = null;
         updateGrid();
     }
@@ -58,32 +65,64 @@
             return;
         }
 
+        ships = allShips.filter((ship) => {
+            return !pickedShips.some((pickedShip) => pickedShip.ship == ship);
+        });
+
         pickedShips.forEach((ship) => {
             ship.ship.parts.forEach((part) => {
-                gridArray[ship.position[0] + part[0]][
-                    ship.position[1] + part[1]
-                ] = 1;
+                let x = part[0];
+                let y = part[1];
+                if (ship.rotation) {
+                    x = part[1];
+                    y = part[0];
+                }
+
+                if (
+                    gridArray[ship.position[0] + x][ship.position[1] + y] != 0
+                ) {
+                    gridArray[ship.position[0] + x][ship.position[1] + y] = -1;
+                } else {
+                    gridArray[ship.position[0] + x][ship.position[1] + y] =
+                        pickedShips.indexOf(ship) + 1;
+                }
             });
         });
     }
 
+    function drag(event) {
+        event.preventDefault();
+        if (event.ctrlKey) {
+            rotate = true;
+        } else {
+            rotate = false;
+        }
+    }
+
+    function dragstartShip(ship) {
+        pickedShip = ship;
+    }
+    let allShips = data.ships;
+    let ships = data.ships;
+    let rotate = true;
     let alphabetArray = getAlphabetArray(gridSize);
 </script>
 
 <h1>user session ID</h1>
 <!-- <div>{data.user.username}</div> -->
 
+<!-- <svelte:window on:keypress={(event) => keypress(event)} /> -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="parent">
     <div class="ship-container">
         <h2>Ships</h2>
         <ul>
-            {#each data.ships as ship}
+            {#each ships as ship}
                 <li>
                     {ship.name}
                     <div
-                        on:dragstart={() => {
-                            pickedShip = ship;
-                        }}
+                        on:dragstart={() => dragstartShip(ship)}
+                        on:drag={(event) => drag(event)}
                         draggable={true}
                         class="grid-container-ship"
                         style="--grid-size: {4}"
@@ -135,11 +174,32 @@
 
                 <!-- Grid Items -->
                 {#each Array(gridSize) as _, colIndex}
-                    {#if gridArray[rowIndex][colIndex] == 1}
+                    {#if gridArray[rowIndex][colIndex] > 0}
                         <div
                             class="grid-item-gray"
+                            on:dragstart={(event) => {
+                                pickedShip =
+                                    pickedShips[
+                                        gridArray[rowIndex][colIndex] - 1
+                                    ].ship;
+
+                                pickedShips.splice(
+                                    gridArray[rowIndex][colIndex] - 1,
+                                    1,
+                                );
+                            }}
+                            on:drag={(event) => drag(event)}
+                            draggable={true}
                             on:dragleave={(event) =>
                                 leave(event, rowIndex, colIndex)}
+                            on:drop={(event) => drop(event, rowIndex, colIndex)}
+                            on:dragover={(event) => drag(event)}
+                        ></div>
+                    {:else if gridArray[rowIndex][colIndex] < 0}
+                        <div
+                            class="grid-item-red"
+                            on:dragenter={(event) =>
+                                enter(event, rowIndex, colIndex)}
                             on:drop={(event) => drop(event, rowIndex, colIndex)}
                             ondragover="return false"
                         ></div>
@@ -207,6 +267,14 @@
     }
     .grid-item-gray {
         background-color: gray;
+        aspect-ratio: 1;
+        display: flex;
+        justify-content: right;
+        align-items: top;
+    }
+
+    .grid-item-red {
+        background-color: rgb(202, 2, 2);
         aspect-ratio: 1;
         display: flex;
         justify-content: right;
