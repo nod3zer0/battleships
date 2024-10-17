@@ -1,8 +1,67 @@
+SET FOREIGN_KEY_CHECKS=0;
+DROP TABLE IF EXISTS ship_game;
+DROP TABLE IF EXISTS shot;
+DROP TABLE IF EXISTS game;
+DROP TABLE IF EXISTS ship_part;
+DROP TABLE IF EXISTS ship;
 DROP TABLE IF EXISTS user;
+SET FOREIGN_KEY_CHECKS=1;
+
 CREATE TABLE user (
   id         INT AUTO_INCREMENT NOT NULL,
   username     VARCHAR(128) NOT NULL,
   password     VARCHAR(128) NOT NULL,
   session      VARCHAR(128),
   PRIMARY KEY (`id`)
+);
+
+
+CREATE TABLE ship (
+  id         INT AUTO_INCREMENT NOT NULL,
+  name       VARCHAR(128) NOT NULL,
+  PRIMARY KEY (`id`)
+);
+
+
+CREATE TABLE ship_part (
+  id         INT AUTO_INCREMENT NOT NULL,
+  ship_id    INT NOT NULL,
+  pos_x     INT NOT NULL,
+  pos_y     INT NOT NULL,
+  turn      INT NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT fk_ship_id FOREIGN KEY (ship_id) REFERENCES ship(id)
+);
+
+
+CREATE TABLE game (
+  id         INT AUTO_INCREMENT NOT NULL,
+  name       VARCHAR(128) NOT NULL,
+  p1_id      INT NOT NULL,
+  p2_id      INT NOT NULL,
+  PRIMARY KEY (`id`)
+);
+
+
+CREATE TABLE ship_game (
+  id         INT AUTO_INCREMENT NOT NULL,
+  ship_id    INT NOT NULL,
+  game_id    INT NOT NULL,
+  pos_x     INT NOT NULL,
+  pos_y     INT NOT NULL,
+  PRIMARY KEY (`id`),
+    CONSTRAINT fk_game_ship_id FOREIGN KEY (ship_id) REFERENCES ship(id),
+    CONSTRAINT fk_game_id FOREIGN KEY (game_id) REFERENCES game(id)
+);
+
+
+CREATE TABLE shot (
+  id         INT AUTO_INCREMENT NOT NULL,
+  game_id    INT NOT NULL,
+  player_id  INT NOT NULL,
+  pos_x     INT NOT NULL,
+  pos_y     INT NOT NULL,
+  PRIMARY KEY (`id`),
+    CONSTRAINT fk_game_shot_id FOREIGN KEY (game_id) REFERENCES game(id),
+    CONSTRAINT fk_player_shot_id FOREIGN KEY (player_id) REFERENCES user(id)
 );
