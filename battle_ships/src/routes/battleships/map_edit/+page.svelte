@@ -2,7 +2,7 @@
     import BattleshipsGrid from "$lib/BattleshipsGrid.svelte";
     export let data;
 
-    let gridSize = 10; // Default grid size
+    let gridSize = 15; // Default grid size
     let gridArray = Array(gridSize)
         .fill(0)
         .map((x) => Array(gridSize).fill(0)); // Create a grid array
@@ -10,6 +10,8 @@
     /** @type {{ name: string, parts: number[][], bitmap: number[][] } | null } */
     let pickedShip = null;
     let pickedShips = [];
+    let errMsg = "";
+    let err = false;
     // Function to change grid size
     function setGridSize(size) {
         gridSize = size;
@@ -76,6 +78,20 @@
                 if (ship.rotation) {
                     x = part[1];
                     y = part[0];
+                }
+
+                if (
+                    ship.position[0] + x < 0 ||
+                    ship.position[0] + x >= gridSize ||
+                    ship.position[1] + y < 0 ||
+                    ship.position[1] + y >= gridSize
+                ) {
+                    pickedShips = pickedShips.filter(
+                        (pickedShip) => pickedShip != ship,
+                    );
+                    updateGrid();
+
+                    return;
                 }
 
                 if (
