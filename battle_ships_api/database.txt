@@ -28,7 +28,6 @@ CREATE TABLE ship_part (
   ship_id    INT NOT NULL,
   pos_x     INT NOT NULL,
   pos_y     INT NOT NULL,
-  turn      INT NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT fk_ship_id FOREIGN KEY (ship_id) REFERENCES ship(id)
 );
@@ -49,6 +48,7 @@ CREATE TABLE ship_game (
   game_id    INT NOT NULL,
   pos_x     INT NOT NULL,
   pos_y     INT NOT NULL,
+  turn      INT NOT NULL,
   PRIMARY KEY (`id`),
     CONSTRAINT fk_game_ship_id FOREIGN KEY (ship_id) REFERENCES ship(id),
     CONSTRAINT fk_game_id FOREIGN KEY (game_id) REFERENCES game(id)
