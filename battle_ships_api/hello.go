@@ -41,6 +41,26 @@ type album struct {
 	Price  float64 `json:"price"`
 }
 
+type ship_db struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type part_db struct {
+	ID     string `json:"id"`
+	ShipID string `json:"shipid"`
+	Pos_x  int    `json:"pos_x"`
+	Pos_y  int    `json:"pos_y"`
+}
+
+type ship_api struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Rotate   int     `json:"rotate"`
+	Position []int   `json:"position"`
+	Parts    [][]int `json:"parts"`
+}
+
 var albums = []album{
 	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
 	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
@@ -79,8 +99,56 @@ func main() {
 	router.POST("/user", GetUser)
 	router.POST("/login", Login)
 	router.POST("/signup", SignUp)
+	router.GET("/ships", getShips)
 
 	router.Run("localhost:8081")
+}
+
+func getShips(c *gin.Context) {
+	var ships []ship_db
+	rows, err := db.Query("SELECT * FROM ship")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer rows.Close()
+	// Loop through rows, using Scan to assign column data to struct fields.
+	for rows.Next() {
+		var ship ship_db
+		if err := rows.Scan(&ship.ID, &ship.Name); err != nil {
+			log.Fatal(err)
+		}
+		ships = append(ships, ship)
+	}
+
+	var parts []part_db
+	rows, err = db.Query("SELECT * FROM ship_part")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer rows.Close()
+	// Loop through rows, using Scan to assign column data to struct fields.
+	for rows.Next() {
+		var part part_db
+		if err := rows.Scan(&part.ID, &part.ShipID, &part.Pos_x, &part.Pos_y); err != nil {
+			log.Fatal(err)
+		}
+		parts = append(parts, part)
+	}
+
+	var ships_api []ship_api
+	for _, ship := range ships {
+		var parts_api [][]int
+		for _, part := range parts {
+			if part.ShipID == ship.ID {
+				parts_api = append(parts_api, []int{part.Pos_x, part.Pos_y})
+			}
+		}
+		ships_api = append(ships_api, ship_api{ID: ship.ID, Name: ship.Name, Parts: parts_api, Rotate: 0, Position: []int{0, 0}})
+	}
+
+	c.IndentedJSON(http.StatusOK, ships_api)
 }
 
 func GetUser(c *gin.Context) {
