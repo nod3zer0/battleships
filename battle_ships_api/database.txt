@@ -37,21 +37,25 @@ CREATE TABLE game (
   id         INT AUTO_INCREMENT NOT NULL,
   name       VARCHAR(128) NOT NULL,
   p1_id      INT NOT NULL,
-  p2_id      INT NOT NULL,
-  PRIMARY KEY (`id`)
+  p2_id      INT,
+  PRIMARY KEY (`id`),
+    CONSTRAINT fk_game_player_id FOREIGN KEY (p1_id) REFERENCES user(id),
+    CONSTRAINT fk_game_player2_id FOREIGN KEY (p2_id) REFERENCES user(id)
 );
 
 
 CREATE TABLE ship_game (
   id         INT AUTO_INCREMENT NOT NULL,
   ship_id    INT NOT NULL,
+  player_id  INT NOT NULL,
   game_id    INT NOT NULL,
   pos_x     INT NOT NULL,
   pos_y     INT NOT NULL,
   turn      INT NOT NULL,
   PRIMARY KEY (`id`),
     CONSTRAINT fk_game_ship_id FOREIGN KEY (ship_id) REFERENCES ship(id),
-    CONSTRAINT fk_game_id FOREIGN KEY (game_id) REFERENCES game(id)
+    CONSTRAINT fk_game_id FOREIGN KEY (game_id) REFERENCES game(id),
+    CONSTRAINT fk_ship_game_player_id FOREIGN KEY (player_id) REFERENCES user(id)
 );
 
 

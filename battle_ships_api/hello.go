@@ -15,9 +15,9 @@ import (
 
 type user struct {
 	ID       string `json:"id"`
-	username string `json:"username"`
-	password string `json:"password"`
-	session  string `json:"session"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Session  string `json:"session"`
 }
 
 type userData struct {
@@ -61,6 +61,24 @@ type ship_api struct {
 	Parts    [][]int `json:"parts"`
 }
 
+type ship_game_api struct {
+	Ship_id   string `json:"id"`
+	Player_id string `json:"player_id"`
+	Game_id   string `json:"game_id"`
+	Rotate    int    `json:"rotate"`
+	Position  []int  `json:"position"`
+}
+
+type ship_game struct {
+	ID        string `json:"id"`
+	Ship_id   string `json:"ship_id"`
+	Player_id string `json:"player_id"`
+	Game_id   string `json:"game_id"`
+	Turn      int    `json:"turn"`
+	Pos_x     int    `json:"pos_x"`
+	Pos_y     int    `json:"pos_y"`
+}
+
 var albums = []album{
 	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
 	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
@@ -100,8 +118,104 @@ func main() {
 	router.POST("/login", Login)
 	router.POST("/signup", SignUp)
 	router.GET("/ships", getShips)
+	router.POST("/create_game", createGame)
+	router.POST("/save_ships", addShips)
+	router.GET("/get_games", getGames)
 
 	router.Run("localhost:8081")
+}
+
+type game_db struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+}
+
+func getGames(c *gin.Context) {
+
+	row, err := db.Query("SELECT game.id, game.name, user.username FROM game LEFT JOIN user ON game.p1_id = user.id WHERE game.p2_id is null")
+
+	if err == sql.ErrNoRows {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"error": "No games found"})
+		return
+	} else if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Fatal(err)
+		return
+	}
+
+	defer row.Close()
+
+	var games []game_db
+	for row.Next() {
+		var game game_db
+		if err := row.Scan(&game.ID, &game.Name, &game.Username); err != nil {
+			log.Fatal(err)
+		}
+		games = append(games, game)
+	}
+
+	c.IndentedJSON(http.StatusOK, games)
+
+}
+
+func createGame(c *gin.Context) {
+
+	var session userSession
+	if err := c.BindJSON(&session); err != nil {
+		return
+	}
+
+	//get user id from session
+	var u user
+	err := db.QueryRow("SELECT id FROM user WHERE session = ?", session.Sessionid).Scan(&u.ID)
+	if err == sql.ErrNoRows {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	} else if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	log.Println(u)
+	//create game
+	db.Exec("INSERT INTO game (name,p1_id) VALUES ('test',?)", u.ID)
+
+}
+
+func addShips(c *gin.Context) {
+
+	type addShipsAPI struct {
+		Game_id      string          `json:"id"`
+		User_session string          `json:"user_session"`
+		Ships        []ship_game_api `json:"ships"`
+	}
+
+	var data addShipsAPI
+	if err := c.BindJSON(&data); err != nil {
+		return
+	}
+
+	//get user id from session
+	var u user
+	err := db.QueryRow("SELECT id FROM user WHERE session = ?", data.User_session).Scan(&u.ID)
+	if err == sql.ErrNoRows {
+		c.IndentedJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	} else if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	log.Println(u)
+	log.Println(data)
+
+	for _, ship := range data.Ships {
+		_, err := db.Exec("INSERT INTO ship_game (ship_id,player_id,game_id,turn,pos_x,pos_y) VALUES (?,?,?,?,?,?)", ship.Ship_id, u.ID, data.Game_id, ship.Rotate, ship.Position[0], ship.Position[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Ships added"})
 }
 
 func getShips(c *gin.Context) {

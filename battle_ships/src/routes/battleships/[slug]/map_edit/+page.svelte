@@ -12,6 +12,30 @@
     let pickedShips = [];
     let errMsg = "";
     let err = false;
+
+    function save() {
+        let ships = pickedShips.map((pickedShip) => {
+            return {
+                id: pickedShip.ship.id,
+                ship: pickedShip.ship.name,
+                position: pickedShip.position,
+                rotation: pickedShip.rotation,
+            };
+        });
+
+        fetch("/api/save_ships", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                ships: ships,
+                id: data.id,
+                session: data.session,
+            }),
+        });
+    }
+
     // Function to change grid size
     function setGridSize(size) {
         gridSize = size;
@@ -125,6 +149,8 @@
 </script>
 
 <h1>user session ID</h1>
+<h1>{data.id}</h1>
+<h1>{data.session}</h1>
 <!-- <div>{data.user.username}</div> -->
 
 <!-- <svelte:window on:keypress={(event) => keypress(event)} /> -->
@@ -233,6 +259,8 @@
         </div>
     </div>
 </div>
+
+<button on:click={save}>Save</button>
 
 <style>
     .ship-container {
