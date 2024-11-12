@@ -1,5 +1,7 @@
 package main
 
+//TODO split into multiple files
+
 import (
 	"net/http"
 
